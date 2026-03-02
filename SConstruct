@@ -5,6 +5,7 @@ import sysconfig
 import platform
 import shlex
 import numpy as np
+import panda
 
 import SCons.Errors
 
@@ -85,6 +86,7 @@ env = Environment(
     "#",
     "#msgq",
     "#third_party",
+    panda.INCLUDE_PATH,
     "#third_party/json11",
     "#third_party/linux/include",
     "#third_party/acados/include",
@@ -219,9 +221,6 @@ Import('socketmaster', 'msgq')
 messaging = [socketmaster, msgq, 'capnp', 'kj',]
 Export('messaging')
 
-
-# Build other submodules
-SConscript(['panda/SConscript'])
 
 # Build rednose library
 SConscript(['rednose/SConscript'])
