@@ -115,8 +115,11 @@ std::optional<std::string> Panda::get_serial() {
 
 bool Panda::up_to_date() {
   if (auto fw_sig = get_firmware_version()) {
+    const char *fw_env = getenv("PANDA_FW_PATH");
+    std::string fw_path = fw_env ? fw_env : "../../panda/board/obj/";
+    if (!fw_path.empty() && fw_path.back() != '/') fw_path += '/';
     for (auto fn : { "panda.bin.signed", "panda_h7.bin.signed" }) {
-      auto content = util::read_file(std::string("../../panda/board/obj/") + fn);
+      auto content = util::read_file(fw_path + fn);
       if (content.size() >= fw_sig->size() &&
           memcmp(content.data() + content.size() - fw_sig->size(), fw_sig->data(), fw_sig->size()) == 0) {
         return true;

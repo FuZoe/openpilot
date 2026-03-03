@@ -36,8 +36,7 @@ cp -pR --parents $(./release/release_files.py) $BUILD_DIR/
 # in the directory
 cd $BUILD_DIR
 
-rm -f panda/board/obj/panda.bin.signed
-rm -f panda/board/obj/panda_h7.bin.signed
+# panda firmware is now built via pandacan pip package
 
 VERSION=$(cat common/version.h | awk -F[\"-]  '{print $2}')
 echo "[-] committing version $VERSION T=$SECONDS"
@@ -49,11 +48,11 @@ export PYTHONPATH="$BUILD_DIR"
 scons -j$(nproc) --minimal
 
 if [ -z "$PANDA_DEBUG_BUILD" ]; then
-  # release panda fw
-  CERT=/data/pandaextra/certs/release RELEASE=1 scons -j$(nproc) panda/
+  # release panda fw: rebuild pandacan with release cert
+  CERT=/data/pandaextra/certs/release RELEASE=1 pip install --no-build-isolation --no-deps --force-reinstall pandacan
 else
   # build with ALLOW_DEBUG=1 to enable features like experimental longitudinal
-  scons -j$(nproc) panda/
+  pip install --no-build-isolation --no-deps --force-reinstall pandacan
 fi
 
 # Ensure no submodules in release

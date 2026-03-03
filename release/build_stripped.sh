@@ -43,7 +43,7 @@ cp -pR --parents $(./release/release_files.py) $TARGET_DIR/
 # in the directory
 cd $TARGET_DIR
 rm -rf .git/modules/
-rm -f panda/board/obj/panda.bin.signed
+# panda firmware is now built via pandacan pip package
 
 # include source commit hash and build date in commit
 GIT_HASH=$(git --git-dir=$SOURCE_DIR/.git rev-parse HEAD)
