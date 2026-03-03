@@ -47,12 +47,13 @@ git commit -a -m "openpilot v$VERSION release"
 export PYTHONPATH="$BUILD_DIR"
 scons -j$(nproc) --minimal
 
+PANDACAN_SRC="git+https://github.com/FuZoe/panda.git@6731de6f"
 if [ -z "$PANDA_DEBUG_BUILD" ]; then
-  # release panda fw: rebuild pandacan with release cert
-  CERT=/data/pandaextra/certs/release RELEASE=1 pip install --no-build-isolation --no-deps --force-reinstall pandacan
+  # release panda fw: rebuild from source with release cert
+  CERT=/data/pandaextra/certs/release RELEASE=1 pip install --no-binary pandacan --no-build-isolation --no-deps --force-reinstall "$PANDACAN_SRC"
 else
   # build with ALLOW_DEBUG=1 to enable features like experimental longitudinal
-  pip install --no-build-isolation --no-deps --force-reinstall pandacan
+  pip install --no-binary pandacan --no-build-isolation --no-deps --force-reinstall "$PANDACAN_SRC"
 fi
 
 # Ensure no submodules in release
