@@ -69,7 +69,10 @@ class TestSimBridgeBase:
         if control_active == min_counts_control_active:
           break
 
-    assert min_counts_control_active == control_active, f"Simulator did not engage a minimal of {min_counts_control_active} steps was {control_active}"
+    engageable = sm['selfdriveState'].engageable
+    alive = sm.all_alive()
+    events = [event.name for event in sm['onroadEvents']]
+    assert min_counts_control_active == control_active, f"Simulator did not engage. active counts: {control_active}, engageable: {engageable}, alive: {alive}, events: {events}"
 
     failure_states = []
     while bridge.started.value:
