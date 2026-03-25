@@ -202,6 +202,7 @@ jobs:
       env:
         TEST_DURATION: 60
         RECORD: 1
+        ONNXCPU: "1"
       run: |
         source selfdrive/test/setup_xvfb.sh
         pytest -s tools/sim/tests/test_metadrive_bridge.py
