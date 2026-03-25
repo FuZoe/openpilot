@@ -7,9 +7,9 @@ export SKIP_FW_QUERY="1"
 export FINGERPRINT="HONDA_CIVIC_2022"
 
 if [[ -n "$RECORD" ]]; then
-  export BLOCK="${BLOCK},camerad,micd,logmessaged,manage_athenad"
+  export BLOCK="${BLOCK},camerad,micd,logmessaged,manage_athenad,soundd"
 else
-  export BLOCK="${BLOCK},camerad,loggerd,encoderd,micd,logmessaged,manage_athenad"
+  export BLOCK="${BLOCK},camerad,loggerd,encoderd,micd,logmessaged,manage_athenad,soundd"
 fi
 if [[ "$CI" ]]; then
   # TODO: offscreen UI should work
