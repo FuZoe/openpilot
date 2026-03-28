@@ -37,18 +37,20 @@ def launcher(proc: str, name: str) -> None:
   except KeyboardInterrupt:
     cloudlog.warning(f"child {proc} got SIGINT")
   except Exception:
-    # can't install the crash handler because sys.excepthook doesn't play nice
-    # with threads, so catch it here.
+    import traceback
+    print(f"PROCESS {name} ({proc}) EXCEPTION:\n{traceback.format_exc()}")
+    cloudlog.error(f"process {name} failed at {proc}:\n{traceback.format_exc()}")
     sentry.capture_exception()
     raise
 
 
-def nativelauncher(pargs: list[str], cwd: str, name: str) -> None:
-  os.environ['MANAGER_DAEMON'] = name
-
-  # exec the process
-  os.chdir(cwd)
-  os.execvp(pargs[0], pargs)
+  try:
+    os.chdir(cwd)
+    os.execvp(pargs[0], pargs)
+  except Exception:
+    import traceback
+    print(f"NATIVE PROCESS {name} EXCEPTION:\n{traceback.format_exc()}")
+    raise
 
 
 def join_process(process: Process, timeout: float) -> None:
