@@ -94,7 +94,12 @@ class TestSimBridgeBase:
       p.terminate()
 
     for p in reversed(self.processes):
-      try:
-        p.wait(15)
-      except subprocess.TimeoutExpired:
-        p.kill()
+      if hasattr(p, 'wait'):
+        try:
+          p.wait(15)
+        except subprocess.TimeoutExpired:
+          p.kill()
+      else:
+        p.join(15)
+        if p.exitcode is None:
+          p.kill()
