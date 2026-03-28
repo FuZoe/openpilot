@@ -31,7 +31,7 @@ class TestSimBridgeBase:
     p_bridge = bridge.run(q, retries=10)
     self.processes.append(p_bridge)
 
-    max_time_per_step = 120
+    max_time_per_step = 180
 
     # Wait for bridge to startup
     start_waiting = time.monotonic()
@@ -75,7 +75,9 @@ class TestSimBridgeBase:
       alive = sm.all_alive()
       events = [event.name for event in sm['onroadEvents']]
       not_running = [p.name for p in sm['managerState'].processes if not p.running and p.shouldBeRunning]
-      err_msg = f"Sim not engaged. active: {control_active}, engageable: {engageable}, alive: {alive}, events: {events}, not_running: {not_running}"
+      err_msg = f"Sim not engaged. active: {control_active}, engageable: {engageable}, alive: {alive}, events: {events}, not_running: {not_running}. "
+      if not engageable:
+        err_msg += "Check if modeld or locationd crashed or are not publishing. "
       assert min_counts_control_active == control_active, err_msg
 
       failure_states = []

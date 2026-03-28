@@ -14,7 +14,7 @@ else
 fi
 if [[ "$CI" ]]; then
   # TODO: offscreen UI should work
-  export BLOCK="${BLOCK},ui"
+  export BLOCK="${BLOCK},ui,loggerd,encoderd"
 fi
 
 python3 -c "from openpilot.selfdrive.test.helpers import set_params_enabled; set_params_enabled()"

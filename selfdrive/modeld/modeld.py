@@ -238,6 +238,15 @@ class ModelState:
 def main(demo=False):
   cloudlog.warning("modeld init")
 
+  # Check for model files
+  for p in (VISION_PKL_PATH, POLICY_PKL_PATH, VISION_METADATA_PATH, POLICY_METADATA_PATH):
+    if not p.exists():
+      cloudlog.error(f"Model file {p} not found!")
+      raise RuntimeError(f"Model file {p} not found! Check your build or Git LFS.")
+    if p.stat().st_size < 1000:
+      cloudlog.error(f"Model file {p} is too small! Likely a Git LFS pointer.")
+      raise RuntimeError(f"Model file {p} is too small! Likely a Git LFS pointer.")
+
   if not USBGPU:
     # USB GPU currently saturates a core so can't do this yet,
     # also need to move the aux USB interrupts for good timings
