@@ -22,7 +22,7 @@ class TestSimBridgeBase:
 
   def test_driving(self):
     # Startup manager and bridge.py. Check processes are running, then engage and verify.
-    p_manager = subprocess.Popen("./launch_openpilot.sh", cwd=SIM_DIR)
+    p_manager = subprocess.Popen("./launch_openpilot.sh", cwd=SIM_DIR, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     self.processes.append(p_manager)
 
     sm = messaging.SubMaster(['selfdriveState', 'onroadEvents', 'managerState'])
@@ -37,69 +37,79 @@ class TestSimBridgeBase:
     start_waiting = time.monotonic()
     while not bridge.started.value and time.monotonic() < start_waiting + max_time_per_step:
       time.sleep(0.1)
-    assert p_bridge.exitcode is None, f"Bridge process should be running, but exited with code {p_bridge.exitcode}"
 
-    start_time = time.monotonic()
-    no_car_events_issues_once = False
-    car_event_issues = []
-    not_running = []
-    while time.monotonic() < start_time + max_time_per_step:
-      sm.update()
+    try:
+      assert p_bridge.exitcode is None, f"Bridge process should be running, but exited with code {p_bridge.exitcode}"
 
-      not_running = [p.name for p in sm['managerState'].processes if not p.running and p.shouldBeRunning]
-      car_event_issues = [event.name for event in sm['onroadEvents'] if any([event.noEntry, event.softDisable, event.immediateDisable])]
+      start_time = time.monotonic()
+      no_car_events_issues_once = False
+      car_event_issues = []
+      not_running = []
+      while time.monotonic() < start_time + max_time_per_step:
+        sm.update()
 
-      if sm.all_alive() and len(car_event_issues) == 0 and len(not_running) == 0:
-        no_car_events_issues_once = True
-        break
+        not_running = [p.name for p in sm['managerState'].processes if not p.running and p.shouldBeRunning]
+        car_event_issues = [event.name for event in sm['onroadEvents'] if any([event.noEntry, event.softDisable, event.immediateDisable])]
 
-    assert no_car_events_issues_once, \
-                    f"Failed because no messages received, or CarEvents '{car_event_issues}' or processes not running '{not_running}'"
-
-    start_time = time.monotonic()
-    min_counts_control_active = 100
-    control_active = 0
-
-    while time.monotonic() < start_time + max_time_per_step:
-      sm.update()
-
-      if sm.all_alive() and sm['selfdriveState'].active:
-        control_active += 1
-
-        if control_active == min_counts_control_active:
+        if sm.all_alive() and len(car_event_issues) == 0 and len(not_running) == 0:
+          no_car_events_issues_once = True
           break
 
-    engageable = sm['selfdriveState'].engageable
-    alive = sm.all_alive()
-    events = [event.name for event in sm['onroadEvents']]
-    not_running = [p.name for p in sm['managerState'].processes if not p.running and p.shouldBeRunning]
-    err_msg = f"Sim not engaged. active: {control_active}, engageable: {engageable}, alive: {alive}, events: {events}, not_running: {not_running}"
-    assert min_counts_control_active == control_active, err_msg
+      assert no_car_events_issues_once, \
+                      f"Failed because no messages received, or CarEvents '{car_event_issues}' or processes not running '{not_running}'"
 
-    failure_states = []
-    while bridge.started.value:
-      time.sleep(0.1)
+      start_time = time.monotonic()
+      min_counts_control_active = 100
+      control_active = 0
 
-    while not q.empty():
-      state = q.get()
-      if state.type == QueueMessageType.TERMINATION_INFO:
-        done_info = state.info
-        failure_states = [done_state for done_state in done_info if done_state != "timeout" and done_info[done_state]]
-        break
-    assert len(failure_states) == 0, f"Simulator fails to finish a loop. Failure states: {failure_states}"
+      while time.monotonic() < start_time + max_time_per_step:
+        sm.update()
+
+        if sm.all_alive() and sm['selfdriveState'].active:
+          control_active += 1
+
+          if control_active == min_counts_control_active:
+            break
+
+      engageable = sm['selfdriveState'].engageable
+      alive = sm.all_alive()
+      events = [event.name for event in sm['onroadEvents']]
+      not_running = [p.name for p in sm['managerState'].processes if not p.running and p.shouldBeRunning]
+      err_msg = f"Sim not engaged. active: {control_active}, engageable: {engageable}, alive: {alive}, events: {events}, not_running: {not_running}"
+      assert min_counts_control_active == control_active, err_msg
+
+      failure_states = []
+      while bridge.started.value:
+        time.sleep(0.1)
+
+      while not q.empty():
+        state = q.get()
+        if state.type == QueueMessageType.TERMINATION_INFO:
+          done_info = state.info
+          failure_states = [done_state for done_state in done_info if done_state != "timeout" and done_info[done_state]]
+          break
+      assert len(failure_states) == 0, f"Simulator fails to finish a loop. Failure states: {failure_states}"
+    except Exception:
+      if p_manager.poll() is None:
+        p_manager.terminate()
+      stdout, _ = p_manager.communicate(timeout=10)
+      print("\n\n" + "="*20 + " MANAGER LOGS " + "="*20)
+      print(stdout)
+      print("="*54 + "\n\n")
+      raise
 
   def teardown_method(self):
     print("Test shutting down. CommIssues are acceptable")
     for p in reversed(self.processes):
-      p.terminate()
-
-    for p in reversed(self.processes):
-      if hasattr(p, 'wait'):
-        try:
-          p.wait(15)
-        except subprocess.TimeoutExpired:
-          p.kill()
+      if isinstance(p, subprocess.Popen):
+        if p.poll() is None:
+          p.terminate()
+          try:
+            p.wait(15)
+          except subprocess.TimeoutExpired:
+            p.kill()
       else:
+        p.terminate()
         p.join(15)
         if p.exitcode is None:
           p.kill()
