@@ -5,7 +5,7 @@ export NOBOARD="1"
 export SIMULATION="1"
 export SKIP_FW_QUERY="1"
 export FINGERPRINT="HONDA_CIVIC_2022"
-export TINYGRAD_DEBUG=1
+export TINYGRAD_DEBUG=0
 
 if [[ -n "$RECORD" ]]; then
   export BLOCK="${BLOCK},camerad,stream_encoderd,micd,logmessaged,manage_athenad,soundd"

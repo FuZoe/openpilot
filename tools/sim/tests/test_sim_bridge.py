@@ -54,6 +54,15 @@ class TestSimBridgeBase:
         if sm.all_alive() and len(car_event_issues) == 0 and len(not_running) == 0:
           no_car_events_issues_once = True
           break
+        else:
+          if sm.frame % 100 == 0:
+             print(f"Waiting for healthy state... not_running: {not_running}, car_event_issues: {car_event_issues}")
+             if not sm.all_alive():
+               print(f"  NOT ALIVE: {[s for s, a in sm.alive.items() if not a]}")
+             if not sm.all_freq_ok():
+               print(f"  FREQ NOT OK: {[s for s, f in sm.freq_ok.items() if not f]}")
+             if not sm.all_valid():
+               print(f"  NOT VALID: {[s for s, v in sm.valid.items() if not v]}")
 
       assert no_car_events_issues_once, \
                       f"Failed because no messages received, or CarEvents '{car_event_issues}' or processes not running '{not_running}'"
