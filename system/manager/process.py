@@ -42,7 +42,8 @@ def launcher(proc: str, name: str) -> None:
     cloudlog.error(f"process {name} failed at {proc}:\n{traceback.format_exc()}")
     sentry.capture_exception()
     raise
-
+def nativelauncher(pargs: list[str], cwd: str, name: str) -> None:
+  os.environ['MANAGER_DAEMON'] = name
 
   try:
     os.chdir(cwd)
