@@ -1,5 +1,7 @@
+import os
 import signal
 import threading
+import time
 import functools
 import numpy as np
 
@@ -34,6 +36,8 @@ def rk_loop(function, hz, exit_event: threading.Event):
     rk.keep_time()
 
 
+CI = os.environ.get("CI") is not None
+
 class SimulatorBridge(ABC):
   TICKS_PER_FRAME = 5
 
@@ -42,7 +46,10 @@ class SimulatorBridge(ABC):
     self.params = Params()
     self.params.put_bool("AlphaLongitudinalEnabled", True)
 
-    self.rk = Ratekeeper(100, None)
+    # In CI, run the bridge main loop slower to leave CPU headroom for
+    # modeld / locationd on resource-constrained 4-core runners.
+    bridge_hz = 20 if CI else 100
+    self.rk = Ratekeeper(bridge_hz, None)
 
     self.dual_camera = dual_camera
     self.high_quality = high_quality
@@ -106,12 +113,14 @@ Ignition: {self.simulator_state.ignition} Engaged: {self.simulator_state.is_enga
 
     self._exit_event = threading.Event()
 
+    car_hz = 20 if CI else 100
+    cam_hz = 10 if CI else 20
     self.simulated_car_thread = threading.Thread(target=rk_loop, args=(functools.partial(self.simulated_car.update, self.simulator_state),
-                                                                        100, self._exit_event))
+                                                                        car_hz, self._exit_event))
     self.simulated_car_thread.start()
 
     self.simulated_camera_thread = threading.Thread(target=rk_loop, args=(functools.partial(self.simulated_sensors.send_camera_images, self.world),
-                                                                        20, self._exit_event))
+                                                                        cam_hz, self._exit_event))
     self.simulated_camera_thread.start()
 
     # Simulation tends to be slow in the initial steps. This prevents lagging later
@@ -204,3 +213,5 @@ Ignition: {self.simulator_state.ignition} Engaged: {self.simulator_state.is_enga
       self.started.value = True
 
       self.rk.keep_time()
+      if CI:
+        time.sleep(0.01)  # yield CPU to modeld/locationd on CI runners
